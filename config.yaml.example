@@ -1,0 +1,24 @@
+# Example configuration file for Whisper Transcription Tool
+# Copy this file to ~/.config/whisper/config.yaml and customize
+
+api:
+  # OpenAI API or compatible endpoint
+  base_url: "https://api.openai.com/v1"
+  api_key: "your-openai-api-key-here"
+  
+  # Whisper model settings
+  model: "whisper-1"              # Available: whisper-1
+  language: null                  # Optional: "en", "zh", "es", etc.
+  temperature: 0.0                # 0.0-1.0, higher = more creative
+  prompt: null                    # Optional context/prompt
+  response_format: "text"         # Options: text, json, srt, verbose_json, vtt
+
+# S3-compatible storage (optional)
+s3:
+  enabled: false                  # Set to true to enable S3 uploads
+  endpoint_url: "https://s3.amazonaws.com"  # AWS S3 or compatible endpoint
+  access_key_id: "your-access-key"
+  secret_access_key: "your-secret-key"
+  bucket_name: "your-bucket-name"
+  public_domain: null             # Optional: "cdn.example.com" for public URLs
+  auto_delete: false              # Auto-delete files after transcription
