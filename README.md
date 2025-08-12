@@ -20,7 +20,7 @@ A unified speech-to-text transcription tool supporting local audio files and You
 pipx install .
 
 # Or install from git repository
-pipx install git+https://github.com/yourusername/whisper-transcription-tool.git
+pipx install git+https://github.com/first-storm/whisper-script.git
 ```
 
 ### Using pip
@@ -30,7 +30,7 @@ pipx install git+https://github.com/yourusername/whisper-transcription-tool.git
 pip install .
 
 # Or install from git repository
-pip install git+https://github.com/yourusername/whisper-transcription-tool.git
+pip install git+https://github.com/first-storm/whisper-script.git
 ```
 
 ## Configuration

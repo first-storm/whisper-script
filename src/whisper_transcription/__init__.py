@@ -8,8 +8,8 @@ A unified speech-to-text script supporting local files and YouTube links using O
 """
 
 __version__ = "0.1.0"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
+__author__ = "LMFuture"
+__email__ = "2835365572zty@gmail.com"
 
 from .main import main
 
