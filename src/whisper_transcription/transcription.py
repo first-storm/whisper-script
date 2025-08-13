@@ -6,7 +6,7 @@ It includes functions for single file and chunked transcription.
 
 import os
 from pathlib import Path
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from typing import Optional, Tuple, Dict, Any
@@ -21,8 +21,15 @@ from .providers.groq_provider import GroqProvider
 TranscriptionProvider = Any # Union[OpenAIProvider, GroqProvider] etc.
 
 
-def save_transcription_to_file(transcription_text, output_path: Path):
-    """Save transcription text to a file."""
+def save_transcription_to_file(transcription_text, output_path: Path, response_format: Optional[str] = None):
+    """Save transcription text to a file, using appropriate extension for SRT/VTT."""
+    if response_format in ["srt", "vtt"]:
+        output_path = output_path.with_suffix(f".{response_format}")
+    elif response_format == "verbose_json":
+        output_path = output_path.with_suffix(".json")
+    else:
+        output_path = output_path.with_suffix(".txt")
+
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(transcription_text.strip())
@@ -33,18 +40,21 @@ def save_transcription_to_file(transcription_text, output_path: Path):
         return False
 
 
-def transcribe_single_file(file_path: Path, provider_service: TranscriptionProvider) -> str:
+def transcribe_single_file(file_path: Path, provider_service: TranscriptionProvider, response_format: Optional[str] = None) -> str:
     """Transcribe a single small file directly via the selected provider API."""
-    return provider_service.transcribe_audio_file(file_path)
+    return provider_service.transcribe_audio_file(file_path, response_format)
 
 
-def transcribe_chunk(file_path: Path, provider_service: TranscriptionProvider, index: int) -> Tuple[int, str]:
+def transcribe_chunk(file_path: Path, provider_service: TranscriptionProvider, index: int, response_format: Optional[str] = None) -> Tuple[int, str]:
     """Transcribe a chunk and return (index, text)."""
+    # Note: Chunks are always transcribed to 'text' format by the provider,
+    # then combined. SRT/VTT formatting happens at the end for the full transcript.
+    # So, we don't pass response_format here.
     text = transcribe_single_file(file_path, provider_service)
     return index, text
 
 
-def transcribe_large_file(file_path: Path, provider_service: TranscriptionProvider, config: Dict[str, Any], temp_dir: Path) -> str:
+def transcribe_large_file(file_path: Path, provider_service: TranscriptionProvider, config: Dict[str, Any], temp_dir: Path, response_format: Optional[str] = None) -> str:
     """
     Split the file on silence into chunks <= max_file_mb and transcribe chunks in parallel.
     Concatenate results in chronological order.
@@ -70,7 +80,7 @@ def transcribe_large_file(file_path: Path, provider_service: TranscriptionProvid
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {
-            executor.submit(transcribe_chunk, chunk, provider_service, idx): (idx, chunk)
+            executor.submit(transcribe_chunk, chunk, provider_service, idx, None): (idx, chunk) # Chunks are always text
             for idx, chunk in enumerate(chunks, start=1)
         }
         for fut in as_completed(futures):
@@ -103,8 +113,8 @@ def transcribe_large_file(file_path: Path, provider_service: TranscriptionProvid
     return combined.strip()
 
 
-def transcribe_audio(file_path: Path, provider_service: TranscriptionProvider, config: Dict[str, Any], output_to_file=True, output_path: Optional[Path]=None) -> Optional[str]:
-    """Dispatch to direct or chunked transcription based on file size and config limit."""
+def transcribe_audio(file_path: Path, provider_service: TranscriptionProvider, config: Dict[str, Any], output_to_file=True, output_path: Optional[Path]=None, response_format: Optional[str] = None) -> Optional[str]:
+    """Dispatch to direct or chunked transcription based on file size and config limit, and handle output format."""
     print(f"\nTranscribing: {file_path.name}")
 
     # Tools check (only required for chunking path)
@@ -126,29 +136,31 @@ def transcribe_audio(file_path: Path, provider_service: TranscriptionProvider, c
             if not (ffmpeg_ok and ffprobe_ok):
                 print("Error: Local chunking requested, but FFmpeg/FFprobe is not available.")
                 return None
-            text = transcribe_large_file(file_path, provider_service, config, temp_dir=Path("./whisper_temp_audio"))
+            # For chunked transcription, the provider always returns text.
+            # The final SRT/VTT conversion happens on the combined text.
+            text = transcribe_large_file(file_path, provider_service, config, temp_dir=Path("./whisper_temp_audio"), response_format=response_format)
         elif chunking_strategy == 'disable':
             # Force single file transcription, fail if too large
             if fsize > max_bytes:
                 print("Error: Chunking disabled and file exceeds size limit.")
                 return None
             spinner.start()
-            text = transcribe_single_file(file_path, provider_service)
+            text = transcribe_single_file(file_path, provider_service, response_format)
             spinner.succeed("Transcription successful!")
         else: # 'auto' chunking strategy
             if fsize <= max_bytes:
                 spinner.start()
-                text = transcribe_single_file(file_path, provider_service)
+                text = transcribe_single_file(file_path, provider_service, response_format)
                 spinner.succeed("Transcription successful!")
             else:
                 if not (ffmpeg_ok and ffprobe_ok):
                     print("Error: File exceeds size limit and FFmpeg/FFprobe is not available for chunking.")
                     return None
-                text = transcribe_large_file(file_path, provider_service, config, temp_dir=Path("./whisper_temp_audio"))
+                text = transcribe_large_file(file_path, provider_service, config, temp_dir=Path("./whisper_temp_audio"), response_format=response_format)
         
         # Output handling
         if output_to_file and output_path:
-            save_transcription_to_file(text, output_path)
+            save_transcription_to_file(text, output_path, response_format)
         else:
             print("-" * 20)
             print(text)

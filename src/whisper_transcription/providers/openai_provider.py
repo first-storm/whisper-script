@@ -5,14 +5,14 @@ This module provides transcription services for OpenAI-compatible APIs.
 
 from pathlib import Path
 from openai import OpenAI
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 class OpenAIProvider:
     def __init__(self, client: OpenAI, config: Dict[str, Any]):
         self.client = client
         self.config = config
 
-    def transcribe_audio_file(self, file_path: Path) -> str:
+    def transcribe_audio_file(self, file_path: Path, response_format: Optional[str] = None) -> str:
         """Transcribe a single small file directly via OpenAI API."""
         api_config = self.config['api']
         
@@ -22,7 +22,7 @@ class OpenAIProvider:
             'language': api_config.get('language'),
             'temperature': float(api_config.get('temperature', 0.0)),
             'prompt': api_config.get('prompt'),
-            'response_format': api_config.get('response_format', 'text'),
+            'response_format': response_format if response_format else api_config.get('response_format', 'text'),
         }
 
         # Only add chunking_strategy if it's 'auto' and provider is openai
