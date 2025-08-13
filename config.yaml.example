@@ -1,24 +1,36 @@
-# Example configuration file for Whisper Transcription Tool
-# Copy this file to ~/.config/whisper/config.yaml and customize
+# ~/.config/whisper/config.yaml
 
-api:
-  # OpenAI API or compatible endpoint
-  base_url: "https://api.openai.com/v1"
-  api_key: "your-openai-api-key-here"
-  
-  # Whisper model settings
-  model: "whisper-1"              # Available: whisper-1
-  language: null                  # Optional: "en", "zh", "es", etc.
-  temperature: 0.0                # 0.0-1.0, higher = more creative
-  prompt: null                    # Optional context/prompt
-  response_format: "text"         # Options: text, json, srt, verbose_json, vtt
+# Profiles let you define multiple API configurations and switch between them
+profiles:
+  default:
+    provider: openai
+    base_url: https://api.openai.com/v1
+    api_key: ${OPENAI_API_KEY}   # environment variable expansion supported
+    model: whisper-1
+    response_format: text
+    temperature: 0.0
+    language: en
 
-# S3-compatible storage (optional)
-s3:
-  enabled: false                  # Set to true to enable S3 uploads
-  endpoint_url: "https://s3.amazonaws.com"  # AWS S3 or compatible endpoint
-  access_key_id: "your-access-key"
-  secret_access_key: "your-secret-key"
-  bucket_name: "your-bucket-name"
-  public_domain: null             # Optional: "cdn.example.com" for public URLs
-  auto_delete: false              # Auto-delete files after transcription
+  local_whisper:
+    provider: my-local-server
+    base_url: http://localhost:8000/v1
+    api_key: dummy_key
+    model: whisper-large-v3
+    response_format: text
+    temperature: 0.0
+
+# Optional: pick the default profile if `--profile` and env `WHISPER_PROFILE` are unset
+default_profile: default
+
+limits:
+  max_file_mb: 25
+
+processing:
+  workers: 4
+  ffmpeg_path: ffmpeg
+  ffprobe_path: ffprobe
+  silence:
+    noise_db: -35
+    min_silence_sec: 0.6
+    padding_sec: 0.1
+    max_chunk_sec_cap: 1200.0
