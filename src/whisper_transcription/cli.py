@@ -21,7 +21,7 @@ from .processing import ensure_tool_exists
 from .providers import OpenAIProvider, GroqProvider
 
 
-def process_item(item: str, provider_service: TranscriptionProvider, config, temp_dir: Path, output_to_console=False):
+def process_item(item: str, provider_service: TranscriptionProvider, config, temp_dir: Path, output_to_console=False, response_format: Optional[str] = None):
     """Process a single file path or URL."""
     audio_path = None
     is_temp_file = False
@@ -50,7 +50,8 @@ def process_item(item: str, provider_service: TranscriptionProvider, config, tem
             provider_service,
             config,
             output_to_file=not output_to_console,
-            output_path=output_path
+            output_path=output_path,
+            response_format=response_format
         )
         if is_temp_file and audio_path:
             try:
@@ -60,7 +61,7 @@ def process_item(item: str, provider_service: TranscriptionProvider, config, tem
                 print(f"Failed to delete temporary file: {e}")
 
 
-def interactive_mode(provider_service: TranscriptionProvider, config, temp_dir: Path, output_to_console=False):
+def interactive_mode(provider_service: TranscriptionProvider, config, temp_dir: Path, output_to_console=False, response_format: Optional[str] = None):
     """Run the script in an interactive command-line mode."""
     print("\n--- Interactive Transcription Mode ---")
     print("Enter a file path or YouTube URL. Type 'quit' or 'exit' to finish.")
@@ -70,7 +71,7 @@ def interactive_mode(provider_service: TranscriptionProvider, config, temp_dir: 
             break
         if not user_input:
             continue
-        process_item(user_input, provider_service, config, temp_dir, output_to_console)
+        process_item(user_input, provider_service, config, temp_dir, output_to_console, response_format)
     print("\nExiting interactive mode.")
 
 
@@ -107,6 +108,23 @@ def main():
         help=(
             "Choose an API profile defined in config.yaml (overrides default_profile / WHISPER_PROFILE)."
         )
+    )
+
+    # NEW: Add mutually exclusive group for output formats
+    output_format_group = parser.add_mutually_exclusive_group()
+    output_format_group.add_argument(
+        "--srt",
+        action="store_const",
+        const="srt",
+        dest="output_format",
+        help="Output transcription in SRT format."
+    )
+    output_format_group.add_argument(
+        "--vtt",
+        action="store_const",
+        const="vtt",
+        dest="output_format",
+        help="Output transcription in VTT format."
     )
 
     args = parser.parse_args()
@@ -162,12 +180,17 @@ def main():
     if not ensure_tool_exists(config['processing']['ffprobe_path']):
         print("Note: FFprobe not found. Large files over the size limit cannot be analyzed for chunking.")
 
+    response_format = args.output_format
+    if response_format and provider_name != 'openai':
+        print(f"Warning: Output format '{response_format}' is only supported for OpenAI provider. Falling back to default.")
+        response_format = None
+
     if args.interactive:
-        interactive_mode(provider_service, config, temp_dir, args.console)
+        interactive_mode(provider_service, config, temp_dir, args.console, response_format)
     elif args.inputs:
         print(f"Found {len(args.inputs)} item(s) to process.")
         for item in args.inputs:
-            process_item(item, provider_service, config, temp_dir, args.console)
+            process_item(item, provider_service, config, temp_dir, args.console, response_format)
     else:
         parser.print_help()
         print("\nError: No inputs provided. Please provide file paths/URLs or use interactive mode (-i).")
