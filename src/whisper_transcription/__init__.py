@@ -11,6 +11,6 @@ __version__ = "0.1.0"
 __author__ = "LMFuture"
 __email__ = "2835365572zty@gmail.com"
 
-from .main import main
+from .cli import main
 
 __all__ = ["main"]
