@@ -12,6 +12,17 @@ profiles:
     temperature: 0.0
     language: en
 
+  google:
+    provider: google
+    chunking: auto  # auto, local, disable
+    base_url: https://generativelanguage.googleapis.com  # optional: custom API endpoint
+    api_key: ${GOOGLE_API_KEY}   # environment variable expansion supported
+    model: gemini-2.5-flash
+    prompt: "Generate a transcript of the speech."
+    temperature: 0.0
+    force_upload: false  # optional: force Files API even for small files
+    inline_limit_bytes: 20930560  # optional: override default inline limit
+
   local_whisper:
     provider: my-local-server
     chunking: local # auto, local, disable

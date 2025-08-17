@@ -190,6 +190,24 @@ def reencode_shrink(ffmpeg: str, input_path: Path, out_path: Path, target_bitrat
     return proc.returncode == 0 and out_path.exists() and out_path.stat().st_size > 0
 
 
+def convert_to_aac(ffmpeg: str, input_path: Path, output_path: Path) -> bool:
+    """
+    Convert any audio format to AAC using ffmpeg.
+    Returns True if conversion was successful, False otherwise.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        ffmpeg, "-hide_banner", "-y",
+        "-i", str(input_path),
+        "-vn",  # No video
+        "-c:a", "aac",  # AAC codec
+        "-b:a", "128k",  # 128 kbps bitrate
+        str(output_path)
+    ]
+    proc = run_subprocess(cmd)
+    return proc.returncode == 0 and output_path.exists() and output_path.stat().st_size > 0
+
+
 def split_on_silence_to_chunks(input_path: Path,
                                temp_dir: Path,
                                config) -> List[Path]:

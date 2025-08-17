@@ -13,12 +13,13 @@ from typing import Optional
 
 from openai import OpenAI
 from groq import Groq
+from google import genai
 
 from .config import load_config, select_api_profile
 from .transcription import transcribe_audio, TranscriptionProvider
 from .services import download_youtube_audio
 from .processing import ensure_tool_exists
-from .providers import OpenAIProvider, GroqProvider
+from .providers import OpenAIProvider, GroqProvider, GoogleProvider
 
 
 def process_item(item: str, provider_service: TranscriptionProvider, config, temp_dir: Path, output_to_console=False, response_format: Optional[str] = None):
@@ -166,6 +167,15 @@ def main():
             sys.exit(1)
         client = Groq(api_key=api_key)
         provider_service = GroqProvider(client, config)
+    elif provider_name == 'google':
+        base_url = api_cfg.get('base_url')
+        api_key = api_cfg.get('api_key')
+        if not api_key:
+            print("Error: Missing 'api_key' for the selected profile. "
+                  "Set it in config.yaml or via environment variable.")
+            sys.exit(1)
+        client = genai.Client(api_key=api_key, http_options={'base_url': base_url}) if base_url else genai.Client(api_key=api_key)
+        provider_service = GoogleProvider(client, config)
     else:
         print(f"Error: Unknown provider '{provider_name}' specified in profile '{sel}'.")
         sys.exit(1)
@@ -181,8 +191,8 @@ def main():
         print("Note: FFprobe not found. Large files over the size limit cannot be analyzed for chunking.")
 
     response_format = args.output_format
-    if response_format and provider_name != 'openai':
-        print(f"Warning: Output format '{response_format}' is only supported for OpenAI provider. Falling back to default.")
+    if response_format and provider_name not in ['openai', 'google']:
+        print(f"Warning: Output format '{response_format}' is only supported for OpenAI and Google providers. Falling back to default.")
         response_format = None
 
     if args.interactive:

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "whisper-transcription-tool"
 version = "0.1.0"
-description = "A unified speech-to-text script supporting local files and YouTube links using OpenAI Whisper API"
+description = "A unified speech-to-text script supporting local files and YouTube links with multiple AI providers (OpenAI, Groq, Google Gemini)"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -34,6 +34,7 @@ dependencies = [
     "PyYAML>=6.0",
     "yt-dlp>=2023.1.6",
     "groq>=0.9.0",
+    "google-genai>=0.3.0",
 ]
 
 [project.optional-dependencies]
