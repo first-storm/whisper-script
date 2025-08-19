@@ -127,10 +127,22 @@ def main():
         dest="output_format",
         help="Output transcription in VTT format."
     )
+    parser.add_argument(
+        "--prompt",
+        help="Optional text to guide the model's style or continue a previous audio segment. If a prompt is already in the config, this will be appended."
+    )
 
     args = parser.parse_args()
 
     config = load_config()
+
+    # Handle --prompt argument
+    if args.prompt:
+        current_prompt = config['api'].get('prompt', '')
+        if current_prompt:
+            config['api']['prompt'] = f"{current_prompt} {args.prompt}"
+        else:
+            config['api']['prompt'] = args.prompt
 
     # NEW: resolve and select API profile (writes back to config['api'])
     try:
