@@ -90,7 +90,7 @@ def main():
         nargs='*',
         help=(
             "One or more input sources.\n"
-            "Can be:\n  - Local audio file path (e.g., audio.mp3)\n  - YouTube video URL (e.g., 'https://www.youtube.com/watch?v=...')"
+            "Can be:\n  - Local audio file path (e.g., audio.mp3)\n  - YouTube video URL (e.g., 'https://www.youtube.com/watch?v=... у')"
         )
     )
     parser.add_argument(
@@ -132,6 +132,12 @@ def main():
         help="Optional text to guide the model's style or continue a previous audio segment. If a prompt is already in the config, this will be appended."
     )
 
+    parser.add_argument(
+        "--chunk",
+        choices=['auto', 'disable', 'local'],
+        help="Chunking strategy: 'auto' (OpenAI only), 'local', or 'disable'."
+    )
+
     args = parser.parse_args()
 
     config = load_config()
@@ -155,8 +161,16 @@ def main():
     sel = config.get('selected_profile_name', '?')
     api_cfg = config['api']
     provider_name = api_cfg.get('provider', 'openai').lower() # Default to 'openai' if not specified
+
+    # Handle --chunk argument
+    if args.chunk:
+        if args.chunk == 'auto' and provider_name != 'openai':
+            print("Error: --chunk 'auto' is only supported for the 'openai' provider.")
+            sys.exit(1)
+        api_cfg['chunking'] = args.chunk
+
     print(
-        f"Using API profile: {sel} | provider={provider_name} | model={api_cfg.get('model','?')}"
+        f"Using API profile: {sel} | provider={provider_name} | model={api_cfg.get('model','?')} | chunking={api_cfg.get('chunking', 'N/A')}"
     )
 
     # Instantiate the correct client based on the provider
